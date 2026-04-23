@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# logs and data
+logs/*.log
+data/*.db
+
+# config and secrets
+config/settings.json
+credentials.json
+token.json
+.env
+.DS_Store

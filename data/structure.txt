@@ -1,0 +1,176 @@
+span ['sr-only'] : Toggle navigation
+h4 [] : Segundo Services Center
+h4 [] : Residence Halls
+h4 [] : Apartments
+h4 [] : Latitude Restaurant
+h4 [] : Fresh Fruit Bar at the Dining Commons
+h4 [] : Seasonal dishes at The Gunrock
+h4 [] : Stone-Fired Pizza at the Dining Commons
+h4 [] : Mongolian Wok Stir Fry at the Dining Commons
+span ['menu-overflow'] : & Resources
+h4 [] : Tercero Area Service Desk
+span ['menu-overflow'] : Student
+h4 [] : Academic Peer Mentors
+h4 [] : Residential Academic Centers
+h2 [] : Menu
+h2 [] : Prices at the Door
+h2 [] : Open for Aggie Day 2026
+h3 [] : Zone Hours on Aggie Day
+h4 [] : Breakfast
+h4 [] : Lunch
+h2 [] : Hours
+h3 [] : Academic Year Hours
+span ['nowrap'] : Tuesday, September 23, 2025
+span ['nowrap'] : Thursday, June 11, 2026.
+strong [] : Monday–Friday
+strong [] : Saturday
+strong [] : Sunday
+strong [] : Holidays
+h3 [] : Scheduled Academic Year Closures
+strong [] : Thanksgiving
+strong [] : Winter Break
+strong [] : Spring Break
+strong [] : End of Year
+h2 [] : General Manager
+h3 [] : Dan Bodhiprasart
+h2 [] : Executive Chef
+h3 [] : Anthony Russo
+h2 [] : Location
+h2 [] : Tercero DC Floor Plan
+h2 [] : Zone Hours
+h3 [] : Monday–Friday
+h4 [] : Breakfast
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h4 [] : Lunch
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h4 [] : Dinner
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h3 [] : Saturday–Sunday
+h4 [] : Breakfast
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h4 [] : Lunch
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h4 [] : Dinner
+strong [] : Red
+strong [] : Yellow
+strong [] : Purple
+strong [] : Blue
+strong [] : Green
+strong [] : Pink
+h2 ['weekly-menu'] : Weekly Menu
+span ['a'] : Sunday
+span ['b'] : Sun
+span ['a'] : Monday
+span ['b'] : Mon
+span ['a'] : Tuesday
+span ['b'] : Tue
+span ['a'] : Wednesday
+span ['b'] : Wed
+span ['a'] : Thursday
+span ['b'] : Thu
+span ['a'] : Friday
+span ['b'] : Fri
+span ['a'] : Saturday
+span ['b'] : Sat
+h2 ['panel-title'] : Menu Filters
+h2 [] : Filter for Diet Preference
+h2 [] : Filter Allergens
+strong [] : always read the nutritional information for any dish
+h2 [] : Dietary Filters
+h2 ['stickyMealHeader'] : Breakfast
+h3 [] : Red Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Yellow Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Blue Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Green Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Purple Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Pink Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h2 ['stickyMealHeader'] : Lunch
+h3 [] : Red Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Yellow Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Blue Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Green Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Purple Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Pink Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h2 ['stickyMealHeader'] : Dinner
+h3 [] : Red Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Yellow Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Blue Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Green Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Purple Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Pink Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h2 [] : Dietary Filters
+h2 ['stickyMealHeader'] : Breakfast
+h3 [] : Red Zone
+h4 ['no-dishes-message'] : Currently there are no dishes at this zone
+h3 [] : Yellow Zone
+h4 ['panel-title'] : Build Your Own Omelette
+strong [] : Contains
+strong [] : Serving Size
+strong [] : Calories
+strong [] : Fat (g)
+strong [] : Carbohydrates (g)
+strong [] : Sugar
+strong [] : Protein (g)
+strong [] : Ingredients
+h4 ['panel-title'] : Build Your Own Veggie Omelette
+strong [] : Contains
+strong [] : Serving Size
+strong [] : Calories
+strong [] : Fat (g)
+strong [] : Carbohydrates (g)
+strong [] : Sugar
+strong [] : Protein (g)
+strong [] : Ingredients
+h4 ['panel-title'] : Build Your Own Omelette || Fried Eggs to Order
+strong [] : Contains
+strong [] : Serving Size
+strong [] : Calories
+strong [] : Fat (g)
+strong [] : Carbohydrates (g)
+strong [] : Sugar
+strong [] : Protein (g)
+strong [] : Ingredients
+h4 ['panel-t
