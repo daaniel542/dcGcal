@@ -94,22 +94,24 @@ def run():
             continue
         logger.info(f"Fetch successful ({len(html)} bytes)")
 
-        # Parse
+        # Parse (gets the full week's menu)
         items = parse_menu(html, location_name=dc_name)
         total_items_parsed += len(items)
         logger.info(f"Parsed {len(items)} menu items")
 
-        # Save to DB
+        # Save ALL items to DB (full week — builds historical dataset)
         inserted = save_menu_items(items)
         total_items_saved += inserted
         logger.info(f"Saved {inserted} new items to database ({len(items) - inserted} duplicates skipped)")
 
-        # Match
-        matches = match_favorites(items, favorites_map)
+        # Match only today and future items for calendar events
+        today = datetime.date.today().isoformat()
+        upcoming_items = [item for item in items if item['date'] >= today]
+        matches = match_favorites(upcoming_items, favorites_map)
         total_matches += len(matches)
 
         if not matches:
-            logger.info(f"No favorite meals found at {dc_name} today.")
+            logger.info(f"No favorite meals found at {dc_name} for today/upcoming.")
             continue
 
         logger.info(f"🎉 Found {len(matches)} match(es) at {dc_name}!")
