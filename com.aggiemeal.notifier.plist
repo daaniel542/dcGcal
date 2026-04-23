@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/yangshuoning/Desktop/personal coding projects/aggie-meal-notifier/run_daily.sh</string>
+        <string>/Users/yangshuoning/Desktop/personal coding projects/aggie-meal-notifier/DCHD_daily.sh</string>
     </array>
 
     <!-- Run at 6:00 AM every day (menus are usually posted overnight) -->

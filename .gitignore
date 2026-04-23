@@ -7,6 +7,8 @@ __pycache__/
 # logs and data
 logs/*.log
 data/*.db
+data/*.html
+data/*.txt
 
 # config and secrets
 config/settings.json
