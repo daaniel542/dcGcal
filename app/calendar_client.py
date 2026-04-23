@@ -184,8 +184,7 @@ def create_meal_event(service, dish_name, date_str, meal_period, location, match
             f"Your favorite meal is being served!\n\n"
             f"Dish: {dish_name}\n"
             f"Matched favorite: {matched_favorite}\n"
-            f"Meal period: {meal_period}\n"
-            f"Location: {location} Dining Commons"
+            f"Meal period: {meal_period}"
         ),
         'start': {
             'dateTime': start_time,
