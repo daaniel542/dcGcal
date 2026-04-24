@@ -145,23 +145,25 @@ def print_share_url(calendar_id):
     print()
 
 
-def create_meal_event(service, dish_name, date_str, meal_period, location, matched_favorite, settings=None, calendar_id=None):
+def create_meal_event(service, dishes, date_str, meal_period, location, settings=None, calendar_id=None):
     """
-    Create a Google Calendar event for a matched meal on the DCHD calendar.
+    Create a Google Calendar event for matched meals on the DCHD calendar.
 
     Args:
         service: Google Calendar API service object
-        dish_name: the actual dish name from the menu
+        dishes: list of dicts with keys 'dish_name' and 'matched_favorite'
         date_str: ISO date string (e.g. "2026-04-22")
         meal_period: "Breakfast", "Lunch", or "Dinner"
         location: dining commons name (e.g. "Tercero")
-        matched_favorite: the favorite that triggered the match
         settings: loaded settings dict (optional, will load if None)
         calendar_id: the DCHD calendar ID (optional, falls back to settings)
 
     Returns:
         The created event's ID, or None on failure.
     """
+    if not dishes:
+        return None
+
     if settings is None:
         settings = load_settings()
 
@@ -177,15 +179,20 @@ def create_meal_event(service, dish_name, date_str, meal_period, location, match
     start_time = f"{date_str}T{time_info['start']}:00"
     end_time = f"{date_str}T{time_info['end']}:00"
 
+    if len(dishes) == 1:
+        summary = f"🍽️ {dishes[0]['dish_name']} — {location} DC"
+    else:
+        summary = f"🍽️ {len(dishes)} Favorites — {location} DC"
+
+    description = "Your favorite meals are being served!\n\n"
+    for d in dishes:
+        description += f"- {d['dish_name']} (Matched: {d['matched_favorite']})\n"
+    description += f"\nMeal period: {meal_period}"
+
     event_body = {
-        'summary': f"🍽️ {dish_name} — {location} DC",
+        'summary': summary,
         'location': f"{location} Dining Commons, UC Davis",
-        'description': (
-            f"Your favorite meal is being served!\n\n"
-            f"Dish: {dish_name}\n"
-            f"Matched favorite: {matched_favorite}\n"
-            f"Meal period: {meal_period}"
-        ),
+        'description': description,
         'start': {
             'dateTime': start_time,
             'timeZone': timezone,
@@ -231,11 +238,10 @@ if __name__ == "__main__":
     tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
     event_id = create_meal_event(
         service=service,
-        dish_name="Test Meal — Please Delete",
+        dishes=[{'dish_name': 'Test Meal — Please Delete', 'matched_favorite': 'Test Favorite'}],
         date_str=tomorrow,
         meal_period="Lunch",
         location="Tercero",
-        matched_favorite="Test Favorite",
         calendar_id=cal_id,
     )
 

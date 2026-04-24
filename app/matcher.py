@@ -71,7 +71,9 @@ def match_favorites(menu_items, favorites_map):
             continue
 
         for norm_fav, orig_fav in favorites_map.items():
-            if norm_fav == norm_dish or norm_fav in norm_dish or norm_dish in norm_fav:
+            # Tighter matching: the favorite must be an exact match
+            # or a substring of the dish on the menu.
+            if norm_fav in norm_dish:
                 matched = dict(item)
                 matched['matched_favorite'] = orig_fav
                 matches.append(matched)

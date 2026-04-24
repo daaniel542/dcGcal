@@ -94,27 +94,32 @@ def run():
             continue
         logger.info(f"Fetch successful ({len(html)} bytes)")
 
-        # Parse
+        # Parse (gets the full week's menu)
         items = parse_menu(html, location_name=dc_name)
         total_items_parsed += len(items)
         logger.info(f"Parsed {len(items)} menu items")
 
-        # Save to DB
+        # Save ALL items to DB (full week — builds historical dataset)
         inserted = save_menu_items(items)
         total_items_saved += inserted
         logger.info(f"Saved {inserted} new items to database ({len(items) - inserted} duplicates skipped)")
 
-        # Match
-        matches = match_favorites(items, favorites_map)
+        # Match only today and future items for calendar events
+        today = datetime.date.today().isoformat()
+        upcoming_items = [item for item in items if item['date'] >= today]
+        matches = match_favorites(upcoming_items, favorites_map)
         total_matches += len(matches)
 
         if not matches:
-            logger.info(f"No favorite meals found at {dc_name} today.")
+            logger.info(f"No favorite meals found at {dc_name} for today/upcoming.")
             continue
 
         logger.info(f"🎉 Found {len(matches)} match(es) at {dc_name}!")
 
         # Create calendar events
+        from collections import defaultdict
+        grouped_matches = defaultdict(list)
+
         for match in matches:
             dish = match['dish_name']
             date = match['date']
@@ -127,25 +132,32 @@ def run():
                 logger.info(f"  ⏭️  Skipping (already created): {dish} ({period})")
                 total_duplicates_skipped += 1
                 continue
+            
+            grouped_matches[(date, location, period)].append({
+                'dish_name': dish,
+                'matched_favorite': fav
+            })
 
-            # Create event on the DCHD calendar
+        for (date, location, period), dishes in grouped_matches.items():
+            # Create ONE aggregated event on the DCHD calendar
             event_id = create_meal_event(
                 service=service,
-                dish_name=dish,
+                dishes=dishes,
                 date_str=date,
                 meal_period=period,
                 location=location,
-                matched_favorite=fav,
                 settings=settings,
                 calendar_id=dchd_cal_id,
             )
 
             if event_id:
-                save_calendar_event(event_id, date, location, period, dish)
-                logger.info(f"  ✅ Created event: {dish} ({period}, {location})")
+                # Save each dish to the DB so we don't recreate them later
+                for d in dishes:
+                    save_calendar_event(event_id, date, location, period, d['dish_name'])
+                logger.info(f"  ✅ Created event for {len(dishes)} dish(es) ({period}, {location})")
                 total_events_created += 1
             else:
-                logger.error(f"  ❌ Failed to create event: {dish}")
+                logger.error(f"  ❌ Failed to create event for {location} {period}")
                 total_errors += 1
 
     # 6. Print summary
