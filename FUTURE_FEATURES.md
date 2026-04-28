@@ -20,7 +20,10 @@ conn.close()
 "
 ```
 
-**Future fix:** Before creating events, verify each recorded event still exists on Google Calendar via the API. If the event was deleted, remove the DB record and recreate it.
+**✅ Fixed (2026-04-27):** Before creating events, `main.py` now calls
+`verify_event_exists()` against the Google Calendar API for every existing DB
+record. If the event was deleted, the stale record is pruned via
+`delete_calendar_event_record()` and the event is re-created in the same run.
 
 ---
 
@@ -32,11 +35,11 @@ conn.close()
 - [ ] Add **keyword groups** (e.g. `"omelette"` matches all omelette variants)
 - [ ] Configurable match threshold / confidence score
 
-### Phase 12 — Multi-Location Support
-- [ ] Add all UC Davis dining commons (Cuarto, Latitude)
-- [ ] Support **preferred locations** (prioritize Tercero over Segundo)
-- [ ] Per-location favorite lists
-- [ ] Show which locations are serving the same favorite
+### Phase 12 — Multi-Location Support ✅ Done (2026-04-27)
+- [x] Add all UC Davis dining commons (Cuarto added; Latitude uses a different menu format)
+- [x] Support **preferred locations** (rank via `location_preferences` in settings.json)
+- [x] Show which locations are serving the same favorite in the calendar event
+- [ ] Per-location favorite lists (stretch)
 
 ### Phase 13 — History & Analytics
 - [ ] Query **most frequent** favorite meals

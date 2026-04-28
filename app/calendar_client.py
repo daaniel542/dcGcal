@@ -145,53 +145,66 @@ def print_share_url(calendar_id):
     print()
 
 
-def create_meal_event(service, dishes, date_str, meal_period, location, settings=None, calendar_id=None):
+def verify_event_exists(service, calendar_id, event_id):
     """
-    Create a Google Calendar event for matched meals on the DCHD calendar.
+    Check whether a Google Calendar event still exists.
 
     Args:
-        service: Google Calendar API service object
-        dishes: list of dicts with keys 'dish_name' and 'matched_favorite'
-        date_str: ISO date string (e.g. "2026-04-22")
-        meal_period: "Breakfast", "Lunch", or "Dinner"
-        location: dining commons name (e.g. "Tercero")
-        settings: loaded settings dict (optional, will load if None)
-        calendar_id: the DCHD calendar ID (optional, falls back to settings)
+        service: Google Calendar API service object.
+        calendar_id: The calendar ID the event belongs to.
+        event_id: The Google Calendar event ID to verify.
 
     Returns:
-        The created event's ID, or None on failure.
+        True if the event exists, False if it was deleted or not found.
     """
-    if not dishes:
-        return None
+    try:
+        event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        # Events that were cancelled/deleted have status 'cancelled'
+        return event.get('status') != 'cancelled'
+    except Exception:
+        return False
 
-    if settings is None:
-        settings = load_settings()
-
+def _build_event_body(dishes, date_str, meal_period, settings):
+    """Internal helper to construct the event payload body."""
     meal_times = settings.get('meal_times', {})
     timezone = settings.get('timezone', 'America/Los_Angeles')
     reminder_minutes = settings.get('reminder_minutes', 30)
 
-    # Use the DCHD calendar
-    if calendar_id is None:
-        calendar_id = settings.get('dchd_calendar_id', 'primary')
-
     time_info = meal_times.get(meal_period, {'start': '12:00', 'end': '13:00'})
     start_time = f"{date_str}T{time_info['start']}:00"
-    end_time = f"{date_str}T{time_info['end']}:00"
+    end_time   = f"{date_str}T{time_info['end']}:00"
+
+    # ---- Build title ----
+    # Collect the unique ordered set of all locations across all dishes
+    all_locs_ordered = []
+    seen_locs = set()
+    for d in dishes:
+        for loc in d.get('locations', []):
+            if loc not in seen_locs:
+                all_locs_ordered.append(loc)
+                seen_locs.add(loc)
 
     if len(dishes) == 1:
-        summary = f"🍽️ {dishes[0]['dish_name']} — {location} DC"
+        d = dishes[0]
+        locs_str = " & ".join(d.get('locations', all_locs_ordered))
+        summary = f"🍽️ {d['dish_name']} @ {locs_str}"
     else:
-        summary = f"🍽️ {len(dishes)} Favorites — {location} DC"
+        summary = f"🍽️ {len(dishes)} Favorites — {meal_period}!"
 
+    # ---- Build description ----
     description = "Your favorite meals are being served!\n\n"
     for d in dishes:
-        description += f"- {d['dish_name']} (Matched: {d['matched_favorite']})\n"
+        locs = d.get('locations', [])
+        loc_str = ", ".join(locs) if locs else "Unknown DC"
+        description += f"• {d['dish_name']} — {loc_str}\n"
     description += f"\nMeal period: {meal_period}"
 
-    event_body = {
+    # ---- Google Calendar location field ----
+    location_field = ", ".join(all_locs_ordered) + " Dining Commons, UC Davis"
+
+    return {
         'summary': summary,
-        'location': f"{location} Dining Commons, UC Davis",
+        'location': location_field,
         'description': description,
         'start': {
             'dateTime': start_time,
@@ -209,6 +222,31 @@ def create_meal_event(service, dishes, date_str, meal_period, location, settings
         },
     }
 
+def create_meal_event(service, dishes, date_str, meal_period, settings=None, calendar_id=None):
+    """
+    Create a Google Calendar event for matched meals on the DCHD calendar.
+
+    Args:
+        service: Google Calendar API service object.
+        dishes: list of dicts, each with 'dish_name', 'matched_favorite', 'locations'
+        date_str: ISO date string (e.g. "2026-04-22").
+        meal_period: "Breakfast", "Lunch", or "Dinner".
+        settings: loaded settings dict (optional, loads from file if None).
+        calendar_id: DCHD calendar ID (optional, falls back to settings).
+
+    Returns:
+        The created event's ID, or None on failure.
+    """
+    if not dishes:
+        return None
+
+    if settings is None:
+        settings = load_settings()
+    if calendar_id is None:
+        calendar_id = settings.get('dchd_calendar_id', 'primary')
+
+    event_body = _build_event_body(dishes, date_str, meal_period, settings)
+
     try:
         event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
         print(f"  📅 Created event: {event.get('htmlLink')}")
@@ -216,6 +254,30 @@ def create_meal_event(service, dishes, date_str, meal_period, location, settings
     except Exception as e:
         print(f"  ❌ Failed to create event: {e}")
         return None
+
+def update_meal_event(service, event_id, dishes, date_str, meal_period, settings=None, calendar_id=None):
+    """
+    Update an existing Google Calendar event with a new list of matched meals.
+    Used when a user adds a new favorite that falls in an already-created meal slot.
+    """
+    if not dishes:
+        return None
+
+    if settings is None:
+        settings = load_settings()
+    if calendar_id is None:
+        calendar_id = settings.get('dchd_calendar_id', 'primary')
+
+    event_body = _build_event_body(dishes, date_str, meal_period, settings)
+
+    try:
+        event = service.events().update(calendarId=calendar_id, eventId=event_id, body=event_body).execute()
+        print(f"  🔄 Updated event: {event.get('htmlLink')}")
+        return event.get('id')
+    except Exception as e:
+        print(f"  ❌ Failed to update event {event_id}: {e}")
+        return None
+
 
 
 if __name__ == "__main__":
