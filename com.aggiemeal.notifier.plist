@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aggiemeal.notifier</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/yangshuoning/Desktop/personal coding projects/aggie-meal-notifier/run_daily.sh</string>
+    </array>
+
+    <!-- Run at 6:00 AM every day (menus are usually posted overnight) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Also run at 4:00 PM as a fallback (catches any menu updates) -->
+    <!--
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>6</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+    -->
+
+    <key>StandardOutPath</key>
+    <string>/Users/yangshuoning/Desktop/personal coding projects/aggie-meal-notifier/logs/launchd_stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/yangshuoning/Desktop/personal coding projects/aggie-meal-notifier/logs/launchd_stderr.log</string>
+
+    <!-- Run if the scheduled time was missed (e.g. computer was asleep) -->
+    <key>StartInterval</key>
+    <integer>86400</integer>
+</dict>
+</plist>
