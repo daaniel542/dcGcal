@@ -10,8 +10,12 @@ This script:
   3. Parses the menu items
   4. Saves the menu snapshot to SQLite
   5. Matches parsed items against favorites
-  6. Creates Google Calendar events for matches (with dedup)
-  7. Logs everything to console and logs/app.log
+  6. Verifies any existing calendar event DB records are still live on Google Calendar
+     (prunes stale records so deleted events get re-created)
+  7. Consolidates matches across all dining commons by (date, period, dish)
+     so one event lists every location serving that favorite
+  8. Creates/skips Google Calendar events with dedup
+  9. Logs everything to console and logs/app.log
 """
 
 import os
@@ -19,6 +23,7 @@ import sys
 import json
 import logging
 import datetime
+from collections import defaultdict
 
 # Add app/ to path so imports work when run from project root
 sys.path.insert(0, os.path.dirname(__file__))
@@ -26,8 +31,15 @@ sys.path.insert(0, os.path.dirname(__file__))
 from fetch_menu import fetch_menu_html
 from parse_menu import parse_menu
 from matcher import load_favorites, match_favorites
-from db import init_db, save_menu_items, event_exists, save_calendar_event
-from calendar_client import get_calendar_service, create_meal_event, load_settings, get_or_create_dchd_calendar
+from db import (
+    init_db, save_menu_items, event_exists, save_calendar_event,
+    get_google_event_id, delete_calendar_event_record,
+    get_existing_event_for_slot, delete_all_calendar_event_records_for_slot,
+)
+from calendar_client import (
+    get_calendar_service, create_meal_event, load_settings,
+    get_or_create_dchd_calendar, verify_event_exists,
+)
 
 # ---------- Logging setup ----------
 
@@ -45,6 +57,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ---------- Helpers ----------
+
+
+def _sort_key_for_location(location, preferences):
+    """Return an integer rank for a location based on the preferences list."""
+    try:
+        return preferences.index(location)
+    except ValueError:
+        return len(preferences)  # Unknown locations go last
+
+
 # ---------- Main pipeline ----------
 
 def run():
@@ -58,6 +81,8 @@ def run():
     # 2. Load settings
     settings = load_settings()
     dining_commons = settings.get('dining_commons', {})
+    location_preferences = settings.get('location_preferences', list(dining_commons.keys()))
+    show_all = settings.get('show_all_locations_in_event', True)
 
     # 3. Load favorites
     favorites_map = load_favorites()
@@ -79,9 +104,20 @@ def run():
     total_matches = 0
     total_events_created = 0
     total_duplicates_skipped = 0
+    total_stale_pruned = 0
     total_errors = 0
 
-    # 5. Loop through each dining commons
+    today = datetime.date.today().isoformat()
+
+    # -----------------------------------------------------------------------
+    # Phase A — Scrape, parse, and save ALL dining commons.
+    # Collect every upcoming match keyed by (date, period, dish_name) so we
+    # can group multiple locations together into a single calendar event.
+    # -----------------------------------------------------------------------
+
+    # Structure: { (date, period, dish_name): [ {location, matched_favorite}, … ] }
+    cross_dc_matches = defaultdict(list)
+
     for dc_name, dc_url in dining_commons.items():
         logger.info(f"\n--- {dc_name} Dining Commons ---")
 
@@ -116,38 +152,124 @@ def run():
 
         logger.info(f"🎉 Found {len(matches)} match(es) at {dc_name}!")
 
-        # Create calendar events
+        # Accumulate into cross-DC structure
         for match in matches:
-            dish = match['dish_name']
-            date = match['date']
-            period = match['meal_period']
-            location = match['location']
-            fav = match['matched_favorite']
+            key = (match['date'], match['meal_period'], match['dish_name'])
+            cross_dc_matches[key].append({
+                'location': dc_name,
+                'matched_favorite': match['matched_favorite'],
+            })
 
-            # Dedup check
-            if event_exists(date, location, period, dish):
-                logger.info(f"  ⏭️  Skipping (already created): {dish} ({period})")
+    # -----------------------------------------------------------------------
+    # Phase B — Create or Update calendar events.
+    # Group ALL new matches by (date, period) only — one event per meal slot
+    # per day. If an event already exists for that slot, we check if any new
+    # dishes/locations were added, and if so, update the Google Event.
+    # -----------------------------------------------------------------------
+
+    logger.info("\n--- Creating / Updating Calendar Events ---")
+
+    # { (date, period): [ {dish_name, matched_favorite, locations: [...]}, … ] }
+    event_groups = defaultdict(list)
+
+    for (date, period, dish_name), location_entries in cross_dc_matches.items():
+        # Sort locations by user preferences
+        sorted_locations = sorted(
+            location_entries,
+            key=lambda e: _sort_key_for_location(e['location'], location_preferences)
+        )
+        all_locs = [e['location'] for e in sorted_locations]
+        matched_fav = sorted_locations[0]['matched_favorite']
+
+        event_groups[(date, period)].append({
+            'dish_name': dish_name,
+            'matched_favorite': matched_fav,
+            'locations': all_locs,
+        })
+
+    # Create or Update one event per (date, period)
+    for (date, period), dishes in sorted(event_groups.items()):
+        # Build a union of all locations across all dishes (for logging)
+        all_locs_for_slot = []
+        seen = set()
+        for d in dishes:
+            for loc in d.get('locations', []):
+                if loc not in seen:
+                    all_locs_for_slot.append(loc)
+                    seen.add(loc)
+
+        label = dishes[0]['dish_name'] if len(dishes) == 1 else f"{len(dishes)} favorites"
+        logger.info(f"  📍 {label} — {', '.join(all_locs_for_slot)} ({period}, {date})")
+
+        # Check if an event already exists for this slot
+        existing_event_id = get_existing_event_for_slot(date, period)
+
+        if existing_event_id:
+            # Verify the event is still on the calendar
+            live = verify_event_exists(service, dchd_cal_id, existing_event_id)
+            if not live:
+                logger.info(f"  🔄 Detected deleted master event for {date} {period}. Pruning stale DB records.")
+                delete_all_calendar_event_records_for_slot(date, period)
+                existing_event_id = None
+                total_stale_pruned += 1
+
+        if existing_event_id:
+            # Event exists and is live. Does it need an update?
+            # It needs an update if any dish+location combo is missing from the DB.
+            needs_update = False
+            for d in dishes:
+                for loc in d.get('locations', []):
+                    if not event_exists(date, loc, period, d['dish_name']):
+                        needs_update = True
+                        break
+                if needs_update:
+                    break
+
+            if needs_update:
+                from calendar_client import update_meal_event
+                # Update the event to reflect all current dishes
+                updated_id = update_meal_event(
+                    service=service,
+                    event_id=existing_event_id,
+                    dishes=dishes,
+                    date_str=date,
+                    meal_period=period,
+                    settings=settings,
+                    calendar_id=dchd_cal_id,
+                )
+                if updated_id:
+                    for d in dishes:
+                        for loc in d.get('locations', []):
+                            save_calendar_event(existing_event_id, date, loc, period, d['dish_name'])
+                    logger.info(f"  ✅ Updated event: {len(dishes)} dish(es) ({period}, {', '.join(all_locs_for_slot)})")
+                    # Incrementing total events created just to show progress
+                    total_events_created += 1
+                else:
+                    logger.error(f"  ❌ Failed to update event for {period} on {date}")
+                    total_errors += 1
+            else:
+                logger.info(f"  ⏭️  Skipping (already up-to-date)")
                 total_duplicates_skipped += 1
-                continue
 
-            # Create event on the DCHD calendar
+        else:
+            # Create a brand new event
             event_id = create_meal_event(
                 service=service,
-                dish_name=dish,
+                dishes=dishes,
                 date_str=date,
                 meal_period=period,
-                location=location,
-                matched_favorite=fav,
                 settings=settings,
                 calendar_id=dchd_cal_id,
             )
 
             if event_id:
-                save_calendar_event(event_id, date, location, period, dish)
-                logger.info(f"  ✅ Created event: {dish} ({period}, {location})")
+                for d in dishes:
+                    for loc in d.get('locations', []):
+                        save_calendar_event(event_id, date, loc, period, d['dish_name'])
+                logger.info(f"  ✅ Created event: {len(dishes)} dish(es) ({period}, {', '.join(all_locs_for_slot)})")
                 total_events_created += 1
             else:
-                logger.error(f"  ❌ Failed to create event: {dish}")
+                logger.error(f"  ❌ Failed to create event for {period} on {date}")
                 total_errors += 1
 
     # 6. Print summary
@@ -155,12 +277,14 @@ def run():
     logger.info("=" * 60)
     logger.info("DAILY RUN SUMMARY")
     logger.info("=" * 60)
-    logger.info(f"  Menu items parsed:     {total_items_parsed}")
-    logger.info(f"  New items saved to DB: {total_items_saved}")
-    logger.info(f"  Favorite matches:      {total_matches}")
-    logger.info(f"  Calendar events created: {total_events_created}")
-    logger.info(f"  Duplicates skipped:    {total_duplicates_skipped}")
-    logger.info(f"  Errors:                {total_errors}")
+    logger.info(f"  Dining commons scraped:    {len(dining_commons)}")
+    logger.info(f"  Menu items parsed:         {total_items_parsed}")
+    logger.info(f"  New items saved to DB:     {total_items_saved}")
+    logger.info(f"  Favorite matches:          {total_matches}")
+    logger.info(f"  Calendar events created:   {total_events_created}")
+    logger.info(f"  Duplicates skipped:        {total_duplicates_skipped}")
+    logger.info(f"  Stale records pruned:      {total_stale_pruned}")
+    logger.info(f"  Errors:                    {total_errors}")
     logger.info("=" * 60)
     logger.info("Done!")
 

@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 source "$SCRIPT_DIR/venv/bin/activate"
 
 # Run the pipeline
-python "$SCRIPT_DIR/app/main.py"
+"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/app/main.py"
 
 # Log completion timestamp
 echo "$(date): Daily run completed" >> "$SCRIPT_DIR/logs/cron.log"

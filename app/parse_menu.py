@@ -49,6 +49,9 @@ def parse_menu(html_content, location_name="Tercero", date_override=None):
     If date_override is provided, all items get that date (legacy behavior).
     Otherwise, items are assigned the correct date based on their day tab.
 
+    If date_override is provided, all items get that date (legacy behavior).
+    Otherwise, items are assigned the correct date based on their day tab.
+
     Args:
         html_content: Raw HTML string from the menu page.
         location_name: Name of the dining commons (e.g. "Tercero").
