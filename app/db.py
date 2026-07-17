@@ -106,6 +106,68 @@ def save_calendar_event(google_event_id, date, location, meal_period, dish_name)
     conn.close()
 
 
+def get_google_event_id(date, location, meal_period, dish_name):
+    """
+    Return the stored Google Calendar event ID for a given meal, or None if not found.
+    Used to verify the event still exists on Google Calendar before skipping it.
+    """
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT google_event_id FROM calendar_events
+        WHERE date = ? AND location = ? AND meal_period = ? AND dish_name = ?
+    ''', (date, location, meal_period, dish_name))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def delete_calendar_event_record(date, location, meal_period, dish_name):
+    """
+    Remove a stale calendar event record from the DB.
+    Called when we detect the event was deleted from Google Calendar.
+    """
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute('''
+        DELETE FROM calendar_events
+        WHERE date = ? AND location = ? AND meal_period = ? AND dish_name = ?
+    ''', (date, location, meal_period, dish_name))
+    conn.commit()
+    conn.close()
+
+
+def get_existing_event_for_slot(date, meal_period):
+    """
+    Return the stored Google Calendar event ID for a given date and meal period,
+    regardless of the dish or location. Returns None if no event exists.
+    """
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT google_event_id FROM calendar_events
+        WHERE date = ? AND meal_period = ? LIMIT 1
+    ''', (date, meal_period))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def delete_all_calendar_event_records_for_slot(date, meal_period):
+    """
+    Remove all stale calendar event records for a specific date and meal period.
+    Called when the master event for this slot was deleted from Google Calendar.
+    """
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute('''
+        DELETE FROM calendar_events
+        WHERE date = ? AND meal_period = ?
+    ''', (date, meal_period))
+    conn.commit()
+    conn.close()
+
+
 def sync_favorites(favorites_list):
     """
     Sync the favorites JSON list into the favorites table.
