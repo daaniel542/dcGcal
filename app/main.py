@@ -27,7 +27,7 @@ from fetch_menu import fetch_menu_html
 from parse_menu import parse_menu
 from matcher import load_favorites, match_favorites
 from db import init_db, save_menu_items, event_exists, save_calendar_event
-from calendar_client import get_calendar_service, create_meal_event, load_settings
+from calendar_client import get_calendar_service, create_meal_event, load_settings, get_or_create_dchd_calendar
 
 # ---------- Logging setup ----------
 
@@ -68,6 +68,10 @@ def run():
     if service is None:
         logger.error("Could not authenticate with Google Calendar. Aborting.")
         return
+
+    # 4b. Get or create the shared DCHD calendar
+    dchd_cal_id = get_or_create_dchd_calendar(service)
+    logger.info(f"Using DCHD calendar: {dchd_cal_id}")
 
     # Summary counters
     total_items_parsed = 0
@@ -124,7 +128,7 @@ def run():
                 total_duplicates_skipped += 1
                 continue
 
-            # Create event
+            # Create event on the DCHD calendar
             event_id = create_meal_event(
                 service=service,
                 dish_name=dish,
@@ -133,6 +137,7 @@ def run():
                 location=location,
                 matched_favorite=fav,
                 settings=settings,
+                calendar_id=dchd_cal_id,
             )
 
             if event_id:
