@@ -19,7 +19,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Map day tab IDs to weekday names
+# Map day tab IDs to weekday numbers (Monday=0, Sunday=6)
 DAY_TAB_IDS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
@@ -45,6 +45,9 @@ def _get_week_dates():
 def parse_menu(html_content, location_name="Tercero", date_override=None):
     """
     Parse the dining commons menu HTML and return structured items.
+    
+    If date_override is provided, all items get that date (legacy behavior).
+    Otherwise, items are assigned the correct date based on their day tab.
 
     If date_override is provided, all items get that date (legacy behavior).
     Otherwise, items are assigned the correct date based on their day tab.

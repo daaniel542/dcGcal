@@ -141,6 +141,7 @@ def run():
         logger.info(f"Saved {inserted} new items to database ({len(items) - inserted} duplicates skipped)")
 
         # Match only today and future items for calendar events
+        today = datetime.date.today().isoformat()
         upcoming_items = [item for item in items if item['date'] >= today]
         matches = match_favorites(upcoming_items, favorites_map)
         total_matches += len(matches)
